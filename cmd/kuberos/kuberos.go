@@ -43,11 +43,12 @@ func logRequests(h http.Handler, log *zap.Logger) http.Handler {
 
 func main() {
 	var (
-		app         = kingpin.New(filepath.Base(os.Args[0]), "Provides OIDC authentication configuration for kubectl.").DefaultEnvars()
-		listen      = app.Flag("listen", "Address at which to expose HTTP webhook.").Default(":10003").String()
-		debug       = app.Flag("debug", "Run with debug logging.").Short('d').Bool()
-		scopes      = app.Flag("scopes", "List of additional scopes to provide in token.").Default("profile", "email").Strings()
-		emailDomain = app.Flag("email-domain", "The eamil domain to restrict access to.").String()
+		app            = kingpin.New(filepath.Base(os.Args[0]), "Provides OIDC authentication configuration for kubectl.").DefaultEnvars()
+		listen         = app.Flag("listen", "Address at which to expose HTTP webhook.").Default(":10003").String()
+		debug          = app.Flag("debug", "Run with debug logging.").Short('d').Bool()
+		scopes         = app.Flag("scopes", "List of additional scopes to provide in token.").Default("profile", "email").Strings()
+		emailDomain    = app.Flag("email-domain", "The email domain to restrict access to.").String()
+		usernameSuffix = app.Flag("username-suffix", "Optional custom suffix to be appended to the username in the generated kubectl config").String()
 
 		grace            = app.Flag("shutdown-grace-period", "Wait this long for sessions to end before shutting down.").Default("1m").Duration()
 		shutdownEndpoint = app.Flag("shutdown-endpoint", "Insecure HTTP endpoint path (e.g., /quitquitquit) that responds to a GET to shut down kuberos.").String()
@@ -85,7 +86,7 @@ func main() {
 	e, err := extractor.NewOIDC(provider.Verifier(&oidc.Config{ClientID: *clientID}), extractor.Logger(log), extractor.EmailDomain(*emailDomain))
 	kingpin.FatalIfError(err, "cannot setup OIDC extractor")
 
-	h, err := kuberos.NewHandlers(cfg, e, kuberos.Logger(log))
+	h, err := kuberos.NewHandlers(cfg, e, *usernameSuffix, kuberos.Logger(log))
 	kingpin.FatalIfError(err, "cannot setup HTTP handlers")
 
 	tmpl, err := clientcmd.LoadFromFile(*templateFile)
@@ -118,7 +119,7 @@ func main() {
 	r.HandlerFunc("GET", "/ui", content(index, filepath.Base(indexPath)))
 	r.HandlerFunc("GET", "/", h.Login)
 	r.HandlerFunc("GET", "/kubecfg", h.KubeCfg)
-	r.HandlerFunc("GET", "/kubecfg.yaml", kuberos.Template(tmpl))
+	r.HandlerFunc("GET", "/kubecfg.yaml", kuberos.Template(tmpl, *usernameSuffix))
 	r.HandlerFunc("GET", "/healthz", ping())
 
 	if *shutdownEndpoint != "" {

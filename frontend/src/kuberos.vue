@@ -79,6 +79,7 @@ export default {
         "# Add your user to kubectl\n" +
         'kubectl config set-credentials "' +
         this.kubecfg.email +
+        this.kubecfg.usernameSuffix +
         '" \\\n' +
         "  --auth-provider=oidc \\\n" +
         '  --auth-provider-arg=client-id="' +
@@ -101,6 +102,7 @@ export default {
         "export CONTEXT=coolcontext\n" +
         'kubectl config set-context ${CONTEXT} --cluster ${CLUSTER} --user="' +
         this.kubecfg.email +
+        this.kubecfg.usernameSuffix +
         '"'
       );
     }
@@ -121,8 +123,8 @@ export default {
       .get(url)
       .then(function(response) {
         _this.kubecfg = response.data;
-        if(_this.kubecfg.email == "") {
-          _this.kubecfg.email = "kuberos";
+        if(_this.kubecfg.user == "") {
+          _this.kubecfg.user = "kuberos";
         }
       })
       .catch(function(error) {
