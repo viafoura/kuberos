@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -119,7 +120,7 @@ func main() {
 	r.HandlerFunc("GET", "/ui", content(index, filepath.Base(indexPath)))
 	r.HandlerFunc("GET", "/", h.Login)
 	r.HandlerFunc("GET", "/kubecfg", h.KubeCfg)
-	r.HandlerFunc("GET", "/kubecfg.yaml", kuberos.Template(tmpl, *usernameSuffix))
+	r.HandlerFunc("GET", fmt.Sprint("/kubecfg", *usernameSuffix, ".yaml"), kuberos.Template(tmpl, *usernameSuffix))
 	r.HandlerFunc("GET", "/healthz", ping())
 
 	if *shutdownEndpoint != "" {
