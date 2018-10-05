@@ -21,7 +21,7 @@ type predictableExtractor struct {
 	err error
 }
 
-func (p *predictableExtractor) Process(_ context.Context, _ *oauth2.Config, _ string, _ string) (*extractor.OIDCAuthenticationParams, error) {
+func (p *predictableExtractor) Process(_ context.Context, _ *oauth2.Config, _ string, _ string, _ string) (*extractor.OIDCAuthenticationParams, error) {
 	return p.p, p.err
 }
 
@@ -61,7 +61,7 @@ func TestAuthCodeURL(t *testing.T) {
 	for _, tt := range cases {
 		e := &predictableExtractor{}
 		t.Run(tt.name, func(t *testing.T) {
-			h, err := NewHandlers(tt.c, e, "", StateFunction(tt.s))
+			h, err := NewHandlers(tt.c, e, "", "", StateFunction(tt.s))
 			if err != nil {
 				t.Fatalf("NewHandlers(%v, %v): %v", tt.c, e, err)
 			}
@@ -265,7 +265,7 @@ func TestPopulateUser(t *testing.T) {
 				}
 			}
 
-			got := populateUser(tt.cfg, tt.params, "")
+			got := populateUser(tt.cfg, tt.params, "", "")
 			if diff := deep.Equal(got, tt.want); diff != nil {
 				t.Errorf("populateUser(...): got != want: %v", diff)
 			}

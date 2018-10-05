@@ -50,6 +50,7 @@ func main() {
 		scopes         = app.Flag("scopes", "List of additional scopes to provide in token.").Default("profile", "email").Strings()
 		emailDomain    = app.Flag("email-domain", "The email domain to restrict access to.").String()
 		usernameSuffix = app.Flag("username-suffix", "Optional custom suffix to be appended to the username in the generated kubectl config").String()
+		suffixSeperator= app.Flag("suffix-seperator", "Optional seperator to be used with username-suffix to seperate username from suffix").String()
 
 		grace            = app.Flag("shutdown-grace-period", "Wait this long for sessions to end before shutting down.").Default("1m").Duration()
 		shutdownEndpoint = app.Flag("shutdown-endpoint", "Insecure HTTP endpoint path (e.g., /quitquitquit) that responds to a GET to shut down kuberos.").String()
@@ -87,7 +88,7 @@ func main() {
 	e, err := extractor.NewOIDC(provider.Verifier(&oidc.Config{ClientID: *clientID}), extractor.Logger(log), extractor.EmailDomain(*emailDomain))
 	kingpin.FatalIfError(err, "cannot setup OIDC extractor")
 
-	h, err := kuberos.NewHandlers(cfg, e, *usernameSuffix, kuberos.Logger(log))
+	h, err := kuberos.NewHandlers(cfg, e, *usernameSuffix, *suffixSeperator, kuberos.Logger(log))
 	kingpin.FatalIfError(err, "cannot setup HTTP handlers")
 
 	tmpl, err := clientcmd.LoadFromFile(*templateFile)
@@ -120,7 +121,7 @@ func main() {
 	r.HandlerFunc("GET", "/ui", content(index, filepath.Base(indexPath)))
 	r.HandlerFunc("GET", "/", h.Login)
 	r.HandlerFunc("GET", "/kubecfg", h.KubeCfg)
-	r.HandlerFunc("GET", fmt.Sprint("/kubecfg", *usernameSuffix, ".yaml"), kuberos.Template(tmpl, *usernameSuffix))
+	r.HandlerFunc("GET", fmt.Sprint("/kubecfg", *suffixSeperator, *usernameSuffix, ".yaml"), kuberos.Template(tmpl, *usernameSuffix, *suffixSeperator))
 	r.HandlerFunc("GET", "/healthz", ping())
 
 	if *shutdownEndpoint != "" {

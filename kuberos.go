@@ -143,6 +143,7 @@ type Handlers struct {
 	httpClient     *http.Client
 	endpoint       *url.URL
 	usernameSuffix string
+	suffixSeperator string
 }
 
 // An Option represents a Handlers option.
@@ -181,7 +182,7 @@ func Logger(l *zap.Logger) Option {
 }
 
 // NewHandlers returns a new set of Kuberos HTTP handlers.
-func NewHandlers(c *oauth2.Config, e extractor.OIDC, usernameSuffix string, ho ...Option) (*Handlers, error) {
+func NewHandlers(c *oauth2.Config, e extractor.OIDC, usernameSuffix string, suffixSeperator string, ho ...Option) (*Handlers, error) {
 	l, err := zap.NewProduction()
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create default logger")
@@ -196,6 +197,7 @@ func NewHandlers(c *oauth2.Config, e extractor.OIDC, usernameSuffix string, ho .
 		httpClient:     http.DefaultClient,
 		endpoint:       &url.URL{Path: DefaultKubeCfgEndpoint},
 		usernameSuffix: usernameSuffix,
+		suffixSeperator: suffixSeperator,
 	}
 
 	// Assume we're using a Googley request for offline access.
@@ -262,7 +264,7 @@ func (h *Handlers) KubeCfg(w http.ResponseWriter, r *http.Request) {
 		RedirectURL:  redirectURL(r, h.endpoint),
 	}
 
-	rsp, err := h.e.Process(r.Context(), c, code, h.usernameSuffix)
+	rsp, err := h.e.Process(r.Context(), c, code, h.usernameSuffix, h.suffixSeperator)
 
 	if err != nil {
 		http.Error(w, errors.Wrap(err, "cannot process OAuth2 code").Error(), http.StatusForbidden)
@@ -315,7 +317,7 @@ func redirectURL(r *http.Request, endpoint *url.URL) string {
 // Template returns an HTTP handler that returns a new kubecfg by taking a
 // template with existing clusters and adding a user and context for each based
 // on the URL parameters passed to it.
-func Template(cfg *api.Config, usernameSuffix string) http.HandlerFunc {
+func Template(cfg *api.Config, usernameSuffix string, suffixSeperator string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		r.ParseMultipartForm(templateFormParseMemory) //nolint:errcheck
 		p := &extractor.OIDCAuthenticationParams{}
@@ -326,7 +328,7 @@ func Template(cfg *api.Config, usernameSuffix string) http.HandlerFunc {
 			return
 		}
 
-		y, err := clientcmd.Write(populateUser(cfg, p, usernameSuffix))
+		y, err := clientcmd.Write(populateUser(cfg, p, usernameSuffix, suffixSeperator))
 		if err != nil {
 			http.Error(w, errors.Wrap(err, "cannot marshal template to YAML").Error(), http.StatusInternalServerError)
 			return
@@ -340,13 +342,13 @@ func Template(cfg *api.Config, usernameSuffix string) http.HandlerFunc {
 	}
 }
 
-func populateUser(cfg *api.Config, p *extractor.OIDCAuthenticationParams, usernameSuffix string) api.Config {
+func populateUser(cfg *api.Config, p *extractor.OIDCAuthenticationParams, usernameSuffix string, suffixSeperator string) api.Config {
 	c := api.Config{}
 	c.AuthInfos = make(map[string]*api.AuthInfo)
 	c.Clusters = make(map[string]*api.Cluster)
 	c.Contexts = make(map[string]*api.Context)
 	c.CurrentContext = cfg.CurrentContext
-	c.AuthInfos[fmt.Sprint(p.Username, usernameSuffix)] = &api.AuthInfo{
+	c.AuthInfos[fmt.Sprint(p.Username, suffixSeperator, usernameSuffix)] = &api.AuthInfo{
 		AuthProvider: &api.AuthProviderConfig{
 			Name: templateAuthProvider,
 			Config: map[string]string{
@@ -376,7 +378,7 @@ func populateUser(cfg *api.Config, p *extractor.OIDCAuthenticationParams, userna
 		c.Clusters[name] = cluster
 		c.Contexts[name] = &api.Context{
 			Cluster:  name,
-			AuthInfo: fmt.Sprint(p.Username, usernameSuffix),
+			AuthInfo: fmt.Sprint(p.Username, suffixSeperator, usernameSuffix),
 		}
 	}
 	return c

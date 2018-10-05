@@ -73,6 +73,8 @@ Flags:
                                The email domain to restrict access to.
       --username-suffix=USERNAME-SUFFIX
                                Optional custom suffix to be appended to the username in the generated kubectl config
+      --suffix-seperator=SEPARATOR
+                               Optional seperator to be used with username-suffix to seperate username from suffix
       --shutdown-grace-period=1m
                                Wait this long for sessions to end before shutting down.
       --shutdown-endpoint=SHUTDOWN-ENDPOINT

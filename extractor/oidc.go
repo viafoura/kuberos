@@ -22,6 +22,7 @@ var ErrMissingIDToken = errors.New("response missing ID token")
 type OIDCAuthenticationParams struct {
 	Username       string `json:"email" schema:"email"` // TODO(negz): Support other claims.
 	UsernameSuffix string `json:"usernameSuffix"`
+	SuffixSeperator string `json:"suffixSeperator"`
 	ClientID       string `json:"clientID" schema:"clientID"`
 	ClientSecret   string `json:"clientSecret" schema:"clientSecret"`
 	IDToken        string `json:"idToken" schema:"idToken"`
@@ -32,7 +33,7 @@ type OIDCAuthenticationParams struct {
 // An OIDC extractor performs OIDC validation, extracting and storing the
 // information required for Kubernetes authentication along the way.
 type OIDC interface {
-	Process(ctx context.Context, cfg *oauth2.Config, code string, usernameSuffix string) (*OIDCAuthenticationParams, error)
+	Process(ctx context.Context, cfg *oauth2.Config, code string, usernameSuffix string, suffixSeperator string) (*OIDCAuthenticationParams, error)
 }
 
 type oidcExtractor struct {
@@ -86,7 +87,7 @@ func NewOIDC(v *oidc.IDTokenVerifier, oo ...Option) (OIDC, error) {
 	return oe, nil
 }
 
-func (o *oidcExtractor) Process(ctx context.Context, cfg *oauth2.Config, code string, usernameSuffix string) (*OIDCAuthenticationParams, error) {
+func (o *oidcExtractor) Process(ctx context.Context, cfg *oauth2.Config, code string, usernameSuffix string, suffixSeperator string) (*OIDCAuthenticationParams, error) {
 	o.log.Debug("exchange ", zap.String("code", code))
 	octx := oidc.ClientContext(ctx, o.h)
 	token, err := cfg.Exchange(octx, code)
@@ -112,6 +113,7 @@ func (o *oidcExtractor) Process(ctx context.Context, cfg *oauth2.Config, code st
 		RefreshToken:   token.RefreshToken,
 		IssuerURL:      idt.Issuer,
 		UsernameSuffix: usernameSuffix,
+		SuffixSeperator: suffixSeperator,
 	}
 	if err := idt.Claims(params); err != nil {
 		return nil, errors.Wrap(err, "cannot extract claims from ID token")

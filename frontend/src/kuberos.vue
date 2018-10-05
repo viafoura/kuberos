@@ -99,13 +99,14 @@ export default {
       });
     },
     templateURL: function() {
-      return "kubecfg" + this.kubecfg.usernameSuffix + ".yaml?" + $.param(this.kubecfg);
+      return "kubecfg" + this.kubecfg.suffixSeperator + this.kubecfg.usernameSuffix + ".yaml?" + $.param(this.kubecfg);
     },
     snippetSetCreds: function() {
       return (
         "# Add your user to kubectl\n" +
         'kubectl config set-credentials "' +
         this.kubecfg.email +
+        this.kubecfg.suffixSeperator +
         this.kubecfg.usernameSuffix +
         '" \\\n' +
         "  --auth-provider=oidc \\\n" +
@@ -129,6 +130,7 @@ export default {
         "export CONTEXT=coolcontext\n" +
         'kubectl config set-context ${CONTEXT} --cluster ${CLUSTER} --user="' +
         this.kubecfg.email +
+        this.kubecfg.suffixSeperator +
         this.kubecfg.usernameSuffix +
         '"'
       );
