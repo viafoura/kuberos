@@ -51,6 +51,7 @@ func main() {
 		emailDomain    = app.Flag("email-domain", "The email domain to restrict access to.").String()
 		usernameSuffix = app.Flag("username-suffix", "Optional custom suffix to be appended to the username in the generated kubectl config").String()
 		suffixSeperator= app.Flag("suffix-seperator", "Optional seperator to be used with username-suffix to seperate username from suffix").String()
+		disableInsertCa= app.Flag("disable-auto-ca-insert", "Disable the automatic insertion of the server CA into kubecfg").Bool()
 
 		grace            = app.Flag("shutdown-grace-period", "Wait this long for sessions to end before shutting down.").Default("1m").Duration()
 		shutdownEndpoint = app.Flag("shutdown-endpoint", "Insecure HTTP endpoint path (e.g., /quitquitquit) that responds to a GET to shut down kuberos.").String()
@@ -121,7 +122,7 @@ func main() {
 	r.HandlerFunc("GET", "/ui", content(index, filepath.Base(indexPath)))
 	r.HandlerFunc("GET", "/", h.Login)
 	r.HandlerFunc("GET", "/kubecfg", h.KubeCfg)
-	r.HandlerFunc("GET", fmt.Sprint("/kubecfg", *suffixSeperator, *usernameSuffix, ".yaml"), kuberos.Template(tmpl, *usernameSuffix, *suffixSeperator))
+	r.HandlerFunc("GET", fmt.Sprint("/kubecfg", *suffixSeperator, *usernameSuffix, ".yaml"), kuberos.Template(tmpl, *usernameSuffix, *suffixSeperator, *disableInsertCa))
 	r.HandlerFunc("GET", "/healthz", ping())
 
 	if *shutdownEndpoint != "" {

@@ -79,6 +79,8 @@ Flags:
                                Wait this long for sessions to end before shutting down.
       --shutdown-endpoint=SHUTDOWN-ENDPOINT
                                Insecure HTTP endpoint path (e.g., /quitquitquit) that responds to a GET to shut down kuberos.
+      --disable-auto-ca-insert
+                               If enabled, do not try to find a CA on the server to add to the kubeconfig
 
 Args:
   [<oidc-issuer-url>]     OpenID Connect issuer URL.

@@ -317,7 +317,7 @@ func redirectURL(r *http.Request, endpoint *url.URL) string {
 // Template returns an HTTP handler that returns a new kubecfg by taking a
 // template with existing clusters and adding a user and context for each based
 // on the URL parameters passed to it.
-func Template(cfg *api.Config, usernameSuffix string, suffixSeperator string) http.HandlerFunc {
+func Template(cfg *api.Config, usernameSuffix string, suffixSeperator string, disableInsertCa bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		r.ParseMultipartForm(templateFormParseMemory) //nolint:errcheck
 		p := &extractor.OIDCAuthenticationParams{}
@@ -328,7 +328,7 @@ func Template(cfg *api.Config, usernameSuffix string, suffixSeperator string) ht
 			return
 		}
 
-		y, err := clientcmd.Write(populateUser(cfg, p, usernameSuffix, suffixSeperator))
+		y, err := clientcmd.Write(populateUser(cfg, p, usernameSuffix, suffixSeperator, disableInsertCa))
 		if err != nil {
 			http.Error(w, errors.Wrap(err, "cannot marshal template to YAML").Error(), http.StatusInternalServerError)
 			return
@@ -342,7 +342,7 @@ func Template(cfg *api.Config, usernameSuffix string, suffixSeperator string) ht
 	}
 }
 
-func populateUser(cfg *api.Config, p *extractor.OIDCAuthenticationParams, usernameSuffix string, suffixSeperator string) api.Config {
+func populateUser(cfg *api.Config, p *extractor.OIDCAuthenticationParams, usernameSuffix string, suffixSeperator string, disableInsertCa bool) api.Config {
 	c := api.Config{}
 	c.AuthInfos = make(map[string]*api.AuthInfo)
 	c.Clusters = make(map[string]*api.Cluster)
@@ -365,7 +365,7 @@ func populateUser(cfg *api.Config, p *extractor.OIDCAuthenticationParams, userna
 		// If the cluster definition does not come with certificate-authority-data nor
 		// certificate-authority, then check if kuberos has access to the cluster's CA
 		// certificate and include it when possible. Assume all errors are non-fatal.
-		if len(cluster.CertificateAuthorityData) == 0 && cluster.CertificateAuthority == "" {
+		if len(cluster.CertificateAuthorityData) == 0 && cluster.CertificateAuthority == "" && !disableInsertCa {
 			caPath := filepath.Join(DefaultAPITokenMountPath, v1.ServiceAccountRootCAKey)
 			if caFile, err := appFs.Open(caPath); err == nil {
 				if caCert, err := ioutil.ReadAll(caFile); err == nil {

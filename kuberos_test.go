@@ -265,7 +265,7 @@ func TestPopulateUser(t *testing.T) {
 				}
 			}
 
-			got := populateUser(tt.cfg, tt.params, "", "")
+			got := populateUser(tt.cfg, tt.params, "", "", true)
 			if diff := deep.Equal(got, tt.want); diff != nil {
 				t.Errorf("populateUser(...): got != want: %v", diff)
 			}
